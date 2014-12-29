@@ -3,7 +3,7 @@ rack-session-moped
 
 Rack session store for MongoDB using Moped drive
 
-<https://github.com/Chillibear/rack-session-mongo>
+<https://github.com/Chillibear/rack-session-moped>
 
 ## Installation
 
@@ -47,6 +47,6 @@ All other standard Rack [Abstract::ID::DEFAULT_OPTIONS](http://www.rubydoc.info/
 - <http://mongoid.org/en/moped/>
 
 ## License
-[rack-session-moped](https://github.com/Chillibear/rack-session-mongo) distributed under the [MIT license](http://www.opensource.org/licenses/mit-license)
+[rack-session-moped](https://github.com/Chillibear/rack-session-moped) distributed under the [MIT license](http://www.opensource.org/licenses/mit-license)
 
 [rack-session-mongo](http://github.com/migrs/rack-session-mongo) on which this is based is Copyright (c) 2012 [Masato Igarashi](http://github.com/migrs)(@[migrs](http://twitter.com/migrs)) and distributed under the [MIT license](http://www.opensource.org/licenses/mit-license).
