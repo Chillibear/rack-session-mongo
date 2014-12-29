@@ -17,7 +17,7 @@ module Rack
       def initialize(app, options={})
         
         # Allow a session to be directly passed in
-        options = { moped_session: options } if options.is_a? Moped::Session
+        options = { moped_session: options } if options.is_a? ::Moped::Session
 
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
@@ -26,7 +26,7 @@ module Rack
         # Setup or re-use DB session
         session = nil
         if options.has_key? :moped_session
-          if options[:moped_session].is_a? Moped::Session
+          if options[:moped_session].is_a? ::Moped::Session
             session = options[:moped_session] 
           else
             hosts = []
