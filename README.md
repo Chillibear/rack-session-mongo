@@ -1,46 +1,52 @@
-rack-session-mongo
-====================
+rack-session-moped
+==================
 
-Rack session store for MongoDB
+Rack session store for MongoDB using Moped drive
 
-<http://github.com/migrs/rack-session-mongo>
-
-[![Build Status](https://secure.travis-ci.org/migrs/rack-session-mongo.png)](http://travis-ci.org/migrs/rack-session-mongo)
+<https://github.com/Chillibear/rack-session-mongo>
 
 ## Installation
 
-    gem install rack-session-mongo
+    gem install rack-session-moped
 
 ## Usage
 
 Simple (localhost:27017 db:sessions, collection:sessions)
 
-    use Rack::Session::Mongo
+    use Rack::Session::Moped
 
-Set MongoDB connection
+Set MongoDB connection using Moped
 
-    conn = Mongo::Coneection.new('myhost', 27017)
-    use Rack::Session::Mongo, conn
+    connection = ......
+    use Rack::Session::Moped, connection
 
-Set MongoDB instance
+Specify with some config
 
-    conn = Mongo::Coneection.new('myhost', 27017)
-    db = conn['myapp']
-    use Rack::Session::Mongo, db
-
-Specify DB host with some config
-
-    use Rack::Session::Mongo, {
+    use Rack::Session::Moped, {
       :host         => 'myhost:27017',
       :db_name      => 'myapp',
       :marshal_data => false,
       :expire_after => 600
     }
 
-## About MongoDB
+## Options
+
+The following options can be passed to Rack::Session::Moped 
+
+* `host`  : A Mongo host supplied as a string in the format "host:port"
+* `hosts` : One or more Mongo host supplied as an array in the format [ "host:port", "host:port" ]
+* `mongo_db_name` : The Mongo database to use (defaults to _sessions_), a string for the name should be supplied
+* `mongo_collection` : The Mongo collection to use (defaults to _sessions_), a string for the name should be supplied
+* `marshal_data` : A boolean to determine if session data should be marshalled (defaults to _true_) 
+
+All other standard Rack [Abstract::ID::DEFAULT_OPTIONS](http://www.rubydoc.info/github/rack/rack/Rack/Session/Abstract/ID) can be passed in to be overridden.
+
+## About MongoDB and Moped
 
 - <http://www.mongodb.org/>
-- <https://github.com/mongodb/mongo-ruby-driver>
+- <http://mongoid.org/en/moped/>
 
 ## License
-[rack-session-mongo](http://github.com/migrs/rack-session-mongo) is Copyright (c) 2012 [Masato Igarashi](http://github.com/migrs)(@[migrs](http://twitter.com/migrs)) and distributed under the [MIT license](http://www.opensource.org/licenses/mit-license).
+[rack-session-moped](https://github.com/Chillibear/rack-session-mongo) distributed under the [MIT license](http://www.opensource.org/licenses/mit-license)
+
+[rack-session-mongo](http://github.com/migrs/rack-session-mongo) on which this is based is Copyright (c) 2012 [Masato Igarashi](http://github.com/migrs)(@[migrs](http://twitter.com/migrs)) and distributed under the [MIT license](http://www.opensource.org/licenses/mit-license).

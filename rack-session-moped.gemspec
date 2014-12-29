@@ -1,15 +1,15 @@
 # -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
-require "rack-session-mongo/version"
+require "rack-session-moped/version"
 
 Gem::Specification.new do |s|
-  s.name        = "rack-session-mongo"
-  s.version     = Rack::Session::Mongo::VERSION
-  s.authors     = ["Masato Igarashi"]
-  s.email       = ["m@igrs.jp"]
-  s.homepage    = "http://github.com/migrs/rack-session-mongo"
-  s.summary     = %q{Rack session store for MongoDB}
-  s.description = %q{Rack session store for MongoDB}
+  s.name        = "rack-session-moped"
+  s.version     = Rack::Session::Moped::VERSION
+  s.authors     = ["Eric Freeman", "Masato Igarashi"]
+  s.email       = []
+  s.homepage    = "https://github.com/Chillibear/rack-session-mongo"
+  s.summary     = %q{Rack session store for MongoDB using Moped driver}
+  s.description = %q{Rack session store for MongoDB using Moped driver}
 
   #s.rubyforge_project = "rack-session-mongo"
 
@@ -21,5 +21,5 @@ Gem::Specification.new do |s|
   # specify any dependencies here; for example:
   s.add_development_dependency "bacon"
   s.add_runtime_dependency "rack"
-  s.add_runtime_dependency "mongo"
+  s.add_runtime_dependency "moped"
 end

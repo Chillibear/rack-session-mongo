@@ -1,10 +1,10 @@
 require 'thread'
 require 'rack/mock'
-require 'rack-session-mongo'
+require 'rack-session-moped'
 require 'fileutils'
 
-describe Rack::Session::Mongo do
-  session_key = Rack::Session::Mongo::DEFAULT_OPTIONS[:key]
+describe Rack::Session::Moped do
+  session_key = Rack::Session::Moped::DEFAULT_OPTIONS[:key]
   session_match = /#{session_key}=[0-9a-fA-F]+;/
 
   incrementor = lambda do |env|
@@ -37,19 +37,19 @@ describe Rack::Session::Mongo do
   end
 
   after do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     pool.pool.remove({})
   end
 
   it "creates a new cookie" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     res = Rack::MockRequest.new(pool).get("/")
     res["Set-Cookie"].should.match session_match
     res.body.should.equal '{"counter"=>1}'
   end
 
   it "determines session from a cookie" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     req = Rack::MockRequest.new(pool)
     cookie = req.get("/")["Set-Cookie"]
     req.get("/", "HTTP_COOKIE" => cookie).
@@ -59,14 +59,14 @@ describe Rack::Session::Mongo do
   end
 
   it "survives nonexistant cookies" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     res = Rack::MockRequest.new(pool).
       get("/", "HTTP_COOKIE" => "#{session_key}=blarghfasel")
     res.body.should.equal '{"counter"=>1}'
   end
 
   it "does not send the same session id if it did not change" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     req = Rack::MockRequest.new(pool)
 
     res0 = req.get("/")
@@ -86,7 +86,7 @@ describe Rack::Session::Mongo do
   end
 
   it "deletes cookies with :drop option" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     req = Rack::MockRequest.new(pool)
     drop = Rack::Utils::Context.new(pool, drop_session)
     dreq = Rack::MockRequest.new(drop)
@@ -108,7 +108,7 @@ describe Rack::Session::Mongo do
   end
 
   it "provides new session id with :renew option" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     req = Rack::MockRequest.new(pool)
     renew = Rack::Utils::Context.new(pool, renew_session)
     rreq = Rack::MockRequest.new(renew)
@@ -135,7 +135,7 @@ describe Rack::Session::Mongo do
   end
 
   it "omits cookie with :defer option" do
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     defer = Rack::Utils::Context.new(pool, defer_session)
     dreq = Rack::MockRequest.new(defer)
 
@@ -153,7 +153,7 @@ describe Rack::Session::Mongo do
     end
 
     warn 'Running multithread tests for Session::Mongo'
-    pool = Rack::Session::Mongo.new(incrementor)
+    pool = Rack::Session::Moped.new(incrementor)
     req = Rack::MockRequest.new(pool)
 
     res = req.get('/')
@@ -187,25 +187,25 @@ describe Rack::Session::Mongo do
   end
 
   it "does not return a cookie if cookie was not read/written" do
-    app = Rack::Session::Mongo.new(nothing)
+    app = Rack::Session::Moped.new(nothing)
     res = Rack::MockRequest.new(app).get("/")
     res["Set-Cookie"].should.be.nil
   end
 
   it "does not return a cookie if cookie was not written (only read)" do
-    app = Rack::Session::Mongo.new(session_id)
+    app = Rack::Session::Moped.new(session_id)
     res = Rack::MockRequest.new(app).get("/")
     res["Set-Cookie"].should.be.nil
   end
 
   it "returns even if not read/written if :expire_after is set" do
-    app = Rack::Session::Mongo.new(nothing, :expire_after => 3600)
+    app = Rack::Session::Moped.new(nothing, :expire_after => 3600)
     res = Rack::MockRequest.new(app).get("/", 'rack.session' => {'not' => 'empty'})
     res["Set-Cookie"].should.not.be.nil
   end
 
   it "returns no cookie if no data was written and no session was created previously, even if :expire_after is set" do
-    app = Rack::Session::Mongo.new(nothing, :expire_after => 3600)
+    app = Rack::Session::Moped.new(nothing, :expire_after => 3600)
     res = Rack::MockRequest.new(app).get("/")
     res["Set-Cookie"].should.be.nil
   end
