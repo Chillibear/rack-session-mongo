@@ -1,2 +1,2 @@
-require "rack/session/mongo"
-require "rack-session-mongo/version"
+require "rack/session/moped"
+require "rack-session-moped/version"
