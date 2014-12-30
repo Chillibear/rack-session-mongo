@@ -12,12 +12,15 @@ module Rack
         mongo_collection: :sessions, 
         marshal_data:     true
       })
+      DEFAULT_MONGO_HOST = 'localhost:27017'
 
       # ------------------------------------------------------------------------
       def initialize(app, options={})
         
         # Allow a session to be directly passed in
         options = { moped_session: options } if options.is_a? ::Moped::Session
+
+        @verbose = options[:verbose]
 
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
@@ -27,6 +30,7 @@ module Rack
         session = nil
         if options.has_key? :moped_session
           if options[:moped_session].is_a? ::Moped::Session
+            env['rack.errors'].puts "Using existing Moped::Session for sessions" if @verbose
             session = options[:moped_session] 
           else
             hosts = []
@@ -34,12 +38,14 @@ module Rack
             hosts << options[:mongo_hosts]
             hosts.flatten!
             hosts.compact!
-            session = Moped::Session.new( hosts )
+            hosts << DEFAULT_MONGO_HOST if hosts.empty?
+            env['rack.errors'].puts "Using '#{hosts.join(", ")}' as Mongo hosts for session store" if @verbose
+            session = ::Moped::Session.new( hosts )
           end
         end 
-        session.use @options[:mongo_db_name].to_s 
+        session.use( @options[:mongo_db_name].to_s ) 
         
-        @pool = session[ @options[:mongo_collection].to_s ]
+        @pool = session[ @options[:mongo_collection].to_s ] 
         @pool.indexes.create(
           { sid: 1 },
           { unique: true }
