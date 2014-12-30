@@ -20,8 +20,6 @@ module Rack
         # Allow a session to be directly passed in
         options = { moped_session: options } if options.is_a? ::Moped::Session
 
-        @verbose = options[:verbose]
-
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
         super        
@@ -29,8 +27,7 @@ module Rack
         # Setup or re-use DB session
         session = nil
         if options.has_key? :moped_session
-          if options[:moped_session].is_a? ::Moped::Session
-            env['rack.errors'].puts "Using existing Moped::Session for sessions" if @verbose
+          if options[:moped_session].is_a? ::Moped::Session            
             session = options[:moped_session] 
           else
             hosts = []
@@ -39,7 +36,6 @@ module Rack
             hosts.flatten!
             hosts.compact!
             hosts << DEFAULT_MONGO_HOST if hosts.empty?
-            env['rack.errors'].puts "Using '#{hosts.join(", ")}' as Mongo hosts for session store" if @verbose
             session = ::Moped::Session.new( hosts )
           end
         end 
