@@ -8,7 +8,7 @@ module Rack
       attr_reader :mutex, :pool
 
       DEFAULT_OPTIONS = Abstract::ID::DEFAULT_OPTIONS.merge({
-        mongo_db_name:    :sessions, 
+        mongo_db_name:    :racksessions, 
         mongo_collection: :sessions, 
         marshal_data:     true
       })
@@ -16,10 +16,10 @@ module Rack
 
       # ------------------------------------------------------------------------
       def initialize(app, options={})
-        
+puts "____init"        
         # Allow a session to be directly passed in
         options = { moped_session: options } if options.is_a? ::Moped::Session
-
+puts "____options = #{options.inspect}"
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
         super        
@@ -31,10 +31,7 @@ module Rack
             moped_session = options[:moped_session] 
           else
             hosts = []
-            hosts << options[:mongo_host]
-            hosts << options[:mongo_hosts]
-            hosts.flatten!
-            hosts.compact!
+            (hosts << options[:mongo_host] << options[:mongo_hosts]).flatten.uniq.compact
             hosts << DEFAULT_MONGO_HOST if hosts.empty?
             moped_session = ::Moped::Session.new( hosts )
           end
@@ -60,7 +57,7 @@ module Rack
       # ------------------------------------------------------------------------
       def get_session(env, sid)
         with_lock(env, [nil, {}]) do
-          unless sid and session = _get(sid)
+          unless sid and (session = _get(sid))
             sid, session = generate_sid, {}
             _put sid, session
           end
