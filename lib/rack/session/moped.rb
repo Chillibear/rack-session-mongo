@@ -25,10 +25,10 @@ module Rack
         super        
                 
         # Setup or re-use DB session
-        session = nil
+        moped_session = nil
         if options.has_key? :moped_session
           if options[:moped_session].is_a? ::Moped::Session            
-            session = options[:moped_session] 
+            moped_session = options[:moped_session] 
           else
             hosts = []
             hosts << options[:mongo_host]
@@ -36,13 +36,13 @@ module Rack
             hosts.flatten!
             hosts.compact!
             hosts << DEFAULT_MONGO_HOST if hosts.empty?
-            session = ::Moped::Session.new( hosts )
+            moped_session = ::Moped::Session.new( hosts )
           end
         end 
-        session.use( @options[:mongo_db_name].to_s ) 
+        moped_session.use( @options[:mongo_db_name].to_s ) 
         
-        @pool = session[ @options[:mongo_collection].to_s ] 
-        @pool.indexes.create(
+        @sessions = moped_session[ @options[:mongo_collection].to_s ] 
+        @sessions.indexes.create(
           { sid: 1 },
           { unique: true }
         )
@@ -98,40 +98,36 @@ module Rack
     private
       # ------------------------------------------------------------------------
       def _put(sid, session)
-        @pool.update(
-          { sid: sid },          
-          { sid: sid, data: _pack(session), updated_at: Time.now.utc }, 
-          { upsert: true }
-        )
+        @sessions.find(sid: sid).upsert(sid: sid, data: _pack(session), updated_at: Time.now.utc)
       end    
 
       # ------------------------------------------------------------------------
       def _get(sid)
         if doc = _exists?(sid)
-          _unpack(doc['data'])
+          _unpack( doc['data'] )
         end
       end
 
       # ------------------------------------------------------------------------
       def _delete(sid)
-        @pool.remove(sid: sid)
+        @sessions.remove(sid: sid)
       end
 
       # ------------------------------------------------------------------------
       def _exists?(sid)
-        @pool.find(sid: sid)
+        @sessions.find(sid: sid)
       end
 
       # ------------------------------------------------------------------------
       def _pack(data)
         return nil unless data
-        @options[:marshal_data] ? [Marshal.dump(data)].pack('m*') : data
+        @options[:marshal_data] ? [ Marshal.dump(data) ].pack('m') : data
       end
 
       # ------------------------------------------------------------------------
       def _unpack(packed)
         return nil unless packed
-        @options[:marshal_data] ? Marshal.load(packed.unpack('m*').first) : packed
+        @options[:marshal_data] ? Marshal.load( packed.unpack('m').first ) : packed
       end
     end
   end
