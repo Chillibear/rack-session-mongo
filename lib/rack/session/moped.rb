@@ -98,9 +98,12 @@ module Rack
     private
       # ------------------------------------------------------------------------
       def _put(sid, session)
-        @pool.update({ sid: sid },
-           {"$set" => {:data  => _pack(session), :updated_at => Time.now.utc}}, :upsert => true)
-      end
+        @pool.update(
+          { sid: sid },          
+          { sid: sid, data: _pack(session), updated_at: Time.now.utc }, 
+          { upsert: true }
+        )
+      end    
 
       # ------------------------------------------------------------------------
       def _get(sid)
@@ -122,13 +125,13 @@ module Rack
       # ------------------------------------------------------------------------
       def _pack(data)
         return nil unless data
-        @options[:marshal_data] ? [Marshal.dump(data)].pack("m*") : data
+        @options[:marshal_data] ? [Marshal.dump(data)].pack('m*') : data
       end
 
       # ------------------------------------------------------------------------
       def _unpack(packed)
         return nil unless packed
-        @options[:marshal_data] ? Marshal.load(packed.unpack("m*").first) : packed
+        @options[:marshal_data] ? Marshal.load(packed.unpack('m*').first) : packed
       end
     end
   end
