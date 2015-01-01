@@ -66,6 +66,7 @@ puts "____[generate_sid] generating sid"
         loop do
 puts "____[generate_sid] looping during generation of sid"
           sid = super
+puts "____[generate_sid] generated sid is #{sid}."          
           break sid unless _exists? sid
         end
 puts "____[generate_sid] generated sid of #{sid}"        
@@ -116,41 +117,42 @@ puts "____[get_session] saving new session #{sid} / #{session}"
     private
       # ------------------------------------------------------------------------
       def _put(sid, session)
-puts "____[_put]"        
+puts "____[_put] #{sid}"        
         @sessions.find(sid: sid).upsert(sid: sid, data: _pack(session), updated_at: Time.now.utc)
       end    
 
       # ------------------------------------------------------------------------
       def _get(sid)
-puts "____[_get]"        
+puts "____[_get] #{sid}"        
         if doc = _exists?(sid)
-puts "____[_get] session exists"          
+puts "____[_get] session exists #{sid}"          
           _unpack( doc['data'] )
         end
       end
 
       # ------------------------------------------------------------------------
       def _delete(sid)
-puts "____[_delete]"        
+puts "____[_delete] #{sid}"        
         @sessions.remove(sid: sid)
       end
 
       # ------------------------------------------------------------------------
       def _exists?(sid)
-puts "____[_exists]"        
+puts "____[_exists] #{sid}"
+puts "____[_exists] result = #{@sessions.find(sid: sid)}."        
         @sessions.find(sid: sid)
       end
 
       # ------------------------------------------------------------------------
       def _pack(data)
-puts "____[_pack]"        
+puts "____[_pack] #{data}"        
         return nil unless data        
         @options[:marshal_data] ? [ Marshal.dump(data) ].pack('m') : data
       end
 
       # ------------------------------------------------------------------------
       def _unpack(packed)
-puts "____[_unpack]"        
+puts "____[_unpack] #{packed}"        
         return nil unless packed
         @options[:marshal_data] ? Marshal.load( packed.unpack('m').first ) : packed
       end
