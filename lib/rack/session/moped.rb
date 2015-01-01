@@ -70,7 +70,6 @@ puts "____[generate_sid] generated sid is #{sid}."
 puts "____[generate_sid] session exits? #{@sessions.find(sid: sid).count > 0}."          
           break sid unless (@sessions.find(sid: sid).count > 0)
         end
-puts "____[generate_sid] generated sid of #{sid}"        
       end
 
       # ------------------------------------------------------------------------
