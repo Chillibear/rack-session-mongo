@@ -22,43 +22,64 @@ puts "____init"
 puts "____options = #{options.inspect}"
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
+puts "____merged options = #{options.inspect}"
         super        
+
+        # Tidy up passed in mongo hosts
+        hosts = []
+        (hosts << options[:mongo_host] << options[:mongo_hosts]).flatten.uniq.compact
+        hosts << DEFAULT_MONGO_HOST if hosts.empty?
                 
         # Setup or re-use DB session
         moped_session = nil
         if options.has_key? :moped_session
+puts "____moped session passed in"
           if options[:moped_session].is_a? ::Moped::Session            
+puts "____using moped session"
             moped_session = options[:moped_session] 
           else
-            hosts = []
-            (hosts << options[:mongo_host] << options[:mongo_hosts]).flatten.uniq.compact
-            hosts << DEFAULT_MONGO_HOST if hosts.empty?
+puts "____using hosts because session object is not a session"            
             moped_session = ::Moped::Session.new( hosts )
           end
+        else
+puts "____using hosts because no session passed in"            
+          moped_session = ::Moped::Session.new( hosts )          
         end 
+puts "____using DB: #{@options[:mongo_db_name].to_s}"
         moped_session.use( @options[:mongo_db_name].to_s ) 
-        
+
+puts "____creating session pool object"
+puts "____using collection #{@options[:mongo_collection].to_s }"        
         @sessions = moped_session[ @options[:mongo_collection].to_s ] 
+puts "____creating index"        
         @sessions.indexes.create(
           { sid: 1 },
           { unique: true }
         )
+puts "____creating mutex"        
         @mutex = Mutex.new
       end
 
       # ------------------------------------------------------------------------
       def generate_sid
+puts "____[generate_sid] generating sid"
         loop do
+puts "____[generate_sid] looping during generation of sid"
           sid = super
           break sid unless _exists? sid
         end
+puts "____[generate_sid] generated sid of #{sid}"        
       end
 
       # ------------------------------------------------------------------------
       def get_session(env, sid)
+puts "____[get_session] getting session #{sid}"         
         with_lock(env, [nil, {}]) do
+puts "____[get_session] with lock and env #{env}"          
           unless sid and (session = _get(sid))
+puts "____[get_session] fetched session #{session}"            
             sid, session = generate_sid, {}
+puts "____[get_session] saving new session #{sid} / #{session}"            
             _put sid, session
           end
           [sid, session]
@@ -95,34 +116,41 @@ puts "____options = #{options.inspect}"
     private
       # ------------------------------------------------------------------------
       def _put(sid, session)
+puts "____[_put]"        
         @sessions.find(sid: sid).upsert(sid: sid, data: _pack(session), updated_at: Time.now.utc)
       end    
 
       # ------------------------------------------------------------------------
       def _get(sid)
+puts "____[_get]"        
         if doc = _exists?(sid)
+puts "____[_get] session exists"          
           _unpack( doc['data'] )
         end
       end
 
       # ------------------------------------------------------------------------
       def _delete(sid)
+puts "____[_delete]"        
         @sessions.remove(sid: sid)
       end
 
       # ------------------------------------------------------------------------
       def _exists?(sid)
+puts "____[_exists]"        
         @sessions.find(sid: sid)
       end
 
       # ------------------------------------------------------------------------
       def _pack(data)
-        return nil unless data
+puts "____[_pack]"        
+        return nil unless data        
         @options[:marshal_data] ? [ Marshal.dump(data) ].pack('m') : data
       end
 
       # ------------------------------------------------------------------------
       def _unpack(packed)
+puts "____[_unpack]"        
         return nil unless packed
         @options[:marshal_data] ? Marshal.load( packed.unpack('m').first ) : packed
       end
