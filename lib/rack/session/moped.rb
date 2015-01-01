@@ -16,13 +16,13 @@ module Rack
 
       # ------------------------------------------------------------------------
       def initialize(app, options={})
-puts "_=___init"        
+puts "_-___init"        
         # Allow a session to be directly passed in
         options = { moped_session: options } if options.is_a? ::Moped::Session
-puts "_=___options = #{options.inspect}"
+puts "_-___options = #{options.inspect}"
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
-puts "_=___merged options = #{options.inspect}"
+puts "_-___merged options = #{options.inspect}"
         super        
 
         # Tidy up passed in mongo hosts
@@ -33,85 +33,87 @@ puts "_=___merged options = #{options.inspect}"
         # Setup or re-use DB session
         moped_session = nil
         if options.has_key? :moped_session
-puts "_=___moped session passed in"
+puts "_-___moped session passed in"
           if options[:moped_session].is_a? ::Moped::Session            
-puts "_=___using moped session"
+puts "_-___using moped session"
             moped_session = options[:moped_session] 
           else
-puts "_=___using hosts because session object is not a session"            
+puts "_-___using hosts because session object is not a session"            
             moped_session = ::Moped::Session.new( hosts )
           end
         else
-puts "_=___using hosts because no session passed in"            
+puts "_-___using hosts because no session passed in"            
           moped_session = ::Moped::Session.new( hosts )          
         end 
-puts "_=___using DB: #{@options[:mongo_db_name].to_s}"
+puts "_-___using DB: #{@options[:mongo_db_name].to_s}"
         moped_session.use( @options[:mongo_db_name].to_s ) 
 
-puts "_=___creating session pool object"
-puts "_=___using collection #{@options[:mongo_collection].to_s }"        
+puts "_-___creating session pool object"
+puts "_-___using collection #{@options[:mongo_collection].to_s }"        
         @sessions = moped_session[ @options[:mongo_collection].to_s ] 
-puts "_=___creating index"        
+puts "_-___creating index"        
         @sessions.indexes.create(
           { sid: 1 },
           { unique: true }
         )
-puts "_=___creating mutex"        
+puts "_-___creating mutex"        
         @mutex = Mutex.new
       end
 
       # ------------------------------------------------------------------------
       def generate_sid
-puts "_=___[generate_sid]"
+puts "_-___[generate_sid]"
         loop do
           sid = super
-puts "_=___[generate_sid] looping during generation of sid"          
-puts "_=___[generate_sid] generated sid is #{sid}."    
-puts "_=___[generate_sid] does session exits? #{@sessions.find(sid: sid).count > 0 ? 'yes' : 'no'}."          
+puts "_-___[generate_sid] looping during generation of sid"          
+puts "_-___[generate_sid] generated sid is #{sid}."    
+puts "_-___[generate_sid] does session exits? #{@sessions.find(sid: sid).count > 0 ? 'yes' : 'no'}."          
           break sid unless (@sessions.find(sid: sid).count > 0)
         end
       end
 
       # ------------------------------------------------------------------------
       def get_session(env, sid)
-puts "_=___[get_session] trying to get session #{sid}"         
         with_lock(env, [nil, {}]) do       
-puts "_=___[get_session] performing find"          
+puts "_-___[get_session] performing find"          
           session = @sessions.find(sid: sid)
-puts "_=___[get_session] E find returned #{session.count} results"                    
+puts "_-___[get_session] E find returned #{session.count} results"                    
           if session.count > 0
-puts "_=___[get_session] E using existing found session" 
+puts "_-___[get_session] E using existing found session" 
             session_data = _unpack( doc['data'] )
-puts "_=___[get_session] E unpacked data: #{session_data}"
+puts "_-___[get_session] E unpacked data: #{session_data}"
             return [sid, session_data]
           else
-puts "_=___[get_session] N no existing session found, generating new one"            
-            sid, session_data = generate_sid, {}
-puts "_=___[get_session] N new sid = #{sid}"
-puts "_=___[get_session] N new data = #{session_data}"             
-            return [sid, session_data]
+puts "_-___[get_session] N no existing session found, generating new one"            
+            sid = generate_sid
+puts "_-___[get_session] N new sid = #{sid}"           
+            return [sid, {}]
           end
         end
       end
 
       # ------------------------------------------------------------------------
       def set_session(env, session_id, new_session, options)
-puts "_=___[set_session] setting data in session"
-puts "_=___[set_session] generating new session id because supplied one is nil" if session_id.nil?
-        session_id = generate_sid if session_id.nil?
         with_lock(env, false) do
-puts "_=___[set_session] find for existing session returned #{@sessions.find(sid: session_id).count} results"           
-puts "_=___[set_session] setting session '#{session_id}' data to '#{new_session}'."
-          @sessions.find(sid: session_id).upsert(sid: sid, data: _pack(new_session), updated_at: Time.now.utc)
-          session_id
+puts "_-___[set_session] setting data in session"
+puts "_-___[set_session] generating new session id because supplied one is nil" if session_id.nil?
+          session_id = generate_sid if session_id.nil?
+puts "_-___[set_session] find for existing session returned #{@sessions.find(sid: session_id).count} results"           
+puts "_-___[set_session] setting session '#{session_id}' data to '#{new_session}'."
+          session = @sessions.find(sid: session_id)
+          if session.count > 0
+            session.update('$set' => { data: _pack(new_session), updated_at: Time.now.utc })
+          else
+            @sessions.insert( sid: sid, data: _pack(new_session), updated_at: Time.now.utc )
+          end
+          return session_id
         end
       end
 
       # ------------------------------------------------------------------------
       def destroy_session(env, session_id, options)
-puts "_=___[destroy_session] "
         with_lock(env) do
-puts "_=___[destroy_session] destroy session  '#{session_id}'."          
+puts "_-___[destroy_session] destroy session  '#{session_id}'."          
           @sessions.remove(sid: sid)
           generate_sid unless options[:drop]
         end
@@ -132,14 +134,14 @@ puts "_=___[destroy_session] destroy session  '#{session_id}'."
 
       # ------------------------------------------------------------------------
       def _pack(data)
-puts "_=___[_pack] #{data}"        
+puts "_-___[_pack] #{data}"        
         return nil unless data        
         @options[:marshal_data] ? [ Marshal.dump(data) ].pack('m') : data
       end
 
       # ------------------------------------------------------------------------
       def _unpack(packed)
-puts "_=___[_unpack] #{packed}"        
+puts "_-___[_unpack] #{packed}"        
         return nil unless packed
         @options[:marshal_data] ? Marshal.load( packed.unpack('m').first ) : packed
       end
