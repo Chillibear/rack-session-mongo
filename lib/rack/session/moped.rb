@@ -66,8 +66,9 @@ puts "____[generate_sid] generating sid"
         loop do
 puts "____[generate_sid] looping during generation of sid"
           sid = super
-puts "____[generate_sid] generated sid is #{sid}."          
-          break sid unless (@sessions.find.count(sid: sid) > 0)
+puts "____[generate_sid] generated sid is #{sid}."    
+puts "____[generate_sid] session exits? #{@sessions.find(sid: sid).count > 0}."          
+          break sid unless (@sessions.find(sid: sid).count > 0)
         end
 puts "____[generate_sid] generated sid of #{sid}"        
       end
