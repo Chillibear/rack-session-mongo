@@ -67,7 +67,7 @@ puts "____[generate_sid] generating sid"
 puts "____[generate_sid] looping during generation of sid"
           sid = super
 puts "____[generate_sid] generated sid is #{sid}."          
-          break sid unless _exists? sid
+          break sid unless (@sessions.find.count(sid: sid) > 0)
         end
 puts "____[generate_sid] generated sid of #{sid}"        
       end
@@ -123,8 +123,9 @@ puts "____[_put] #{sid}"
 
       # ------------------------------------------------------------------------
       def _get(sid)
-puts "____[_get] #{sid}"        
-        if doc = _exists?(sid)
+puts "____[_get] #{sid}"  
+        doc = @sessions.find.one(sid: sid)
+        if doc = @sessions.find.one(sid: sid)
 puts "____[_get] session exists #{sid}"          
           _unpack( doc['data'] )
         end
@@ -134,13 +135,6 @@ puts "____[_get] session exists #{sid}"
       def _delete(sid)
 puts "____[_delete] #{sid}"        
         @sessions.remove(sid: sid)
-      end
-
-      # ------------------------------------------------------------------------
-      def _exists?(sid)
-puts "____[_exists] #{sid}"
-puts "____[_exists] result = #{@sessions.find(sid: sid)}."        
-        @sessions.find(sid: sid)
       end
 
       # ------------------------------------------------------------------------
