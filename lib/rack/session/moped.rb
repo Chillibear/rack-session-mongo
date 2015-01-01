@@ -77,7 +77,7 @@ puts "____[generate_sid] generated sid of #{sid}"
       def get_session(env, sid)
 puts "____[get_session] getting session #{sid}"         
         with_lock(env, [nil, {}]) do
-puts "____[get_session] with lock and env #{env}"          
+puts "____[get_session] with lock"          
           unless sid and (session = _get(sid))
 puts "____[get_session] fetched session #{session}"            
             sid, session = generate_sid, {}
@@ -90,7 +90,9 @@ puts "____[get_session] saving new session #{sid} / #{session}"
 
       # ------------------------------------------------------------------------
       def set_session(env, session_id, new_session, options)
+puts "____[set_session]"        
         with_lock(env, false) do
+puts "____[set_session] setting session to '#{new_session}'."
           _put session_id, new_session
           session_id
         end
@@ -98,7 +100,9 @@ puts "____[get_session] saving new session #{sid} / #{session}"
 
       # ------------------------------------------------------------------------
       def destroy_session(env, session_id, options)
+puts "____[destroy_session] "
         with_lock(env) do
+puts "____[destroy_session] destroy session  '#{session_id}'."          
           _delete(session_id)
           generate_sid unless options[:drop]
         end
@@ -118,14 +122,16 @@ puts "____[get_session] saving new session #{sid} / #{session}"
     private
       # ------------------------------------------------------------------------
       def _put(sid, session)
-puts "____[_put] #{sid}"        
-        @sessions.find(sid: sid).upsert(sid: sid, data: _pack(session), updated_at: Time.now.utc)
+puts "____[_put] #{sid} / #{session}"
+puts "____[_put] session exists? (#{@sessions.find(sid: sid).count>0 ? 'yes' : 'no'})"        
+        result = @sessions.find(sid: sid).upsert(sid: sid, data: _pack(session), updated_at: Time.now.utc)
+puts "____[_put] result = #{result}"        
+        return result
       end    
 
       # ------------------------------------------------------------------------
       def _get(sid)
 puts "____[_get] #{sid}"  
-        doc = @sessions.find.one(sid: sid)
         if doc = @sessions.find.one(sid: sid)
 puts "____[_get] session exists #{sid}"          
           _unpack( doc['data'] )
