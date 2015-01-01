@@ -92,7 +92,7 @@ puts "____[get_session] saving new session #{sid} / #{session}"
       def set_session(env, session_id, new_session, options)
 puts "____[set_session]"        
         with_lock(env, false) do
-puts "____[set_session] setting session to '#{new_session}'."
+puts "____[set_session] setting session '#{session_id}' to '#{new_session}'."
           _put session_id, new_session
           session_id
         end
@@ -123,6 +123,7 @@ puts "____[destroy_session] destroy session  '#{session_id}'."
       # ------------------------------------------------------------------------
       def _put(sid, session)
 puts "____[_put] #{sid} / #{session}"
+raise 'Session ID nil whilst saving/creating session'
 puts "____[_put] session exists? (#{@sessions.find(sid: sid).count>0 ? 'yes' : 'no'})"        
         result = @sessions.find(sid: sid).upsert(sid: sid, data: _pack(session), updated_at: Time.now.utc)
 puts "____[_put] result = #{result}"        
