@@ -1,7 +1,7 @@
 module Rack
   module Session
     class Moped
-      VERSION = "0.1.17"
+      VERSION = "0.1.18"
     end
   end
 end
