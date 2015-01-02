@@ -16,13 +16,10 @@ module Rack
 
       # ------------------------------------------------------------------------
       def initialize(app, options={})
-puts "_^___init"        
         # Allow a session to be directly passed in
         options = { moped_session: options } if options.is_a? ::Moped::Session
-puts "_^___options = #{options.inspect}"
         # Merge user passed parameters with the defaults from this and the Rack session
         @options = DEFAULT_OPTIONS.merge options         
-puts "_^___merged options = #{options.inspect}"
         super        
 
         # Tidy up passed in mongo hosts
@@ -33,62 +30,55 @@ puts "_^___merged options = #{options.inspect}"
         # Setup or re-use DB session
         moped_session = nil
         if options.has_key? :moped_session
-puts "_^___moped session passed in"
           if options[:moped_session].is_a? ::Moped::Session            
-puts "_^___using moped session"
             moped_session = options[:moped_session] 
           else
-puts "_^___using hosts because session object is not a session"            
             moped_session = ::Moped::Session.new( hosts )
           end
         else
-puts "_^___using hosts because no session passed in"            
           moped_session = ::Moped::Session.new( hosts )          
         end 
-puts "_^___using DB: #{@options[:mongo_db_name].to_s}"
         moped_session.use( @options[:mongo_db_name].to_s ) 
 
-puts "_^___creating session pool object"
-puts "_^___using collection #{@options[:mongo_collection].to_s }"        
         @sessions = moped_session[ @options[:mongo_collection].to_s ] 
-puts "_^___creating index"        
         @sessions.indexes.create(
           { sid: 1 },
           { unique: true }
-        )
-puts "_^___creating mutex"        
+        )       
         @mutex = Mutex.new
       end
 
       # ------------------------------------------------------------------------
       def generate_sid
-puts "_^___[generate_sid]"
         loop do
+i = Random.rand(100)          
+puts "_^__#{i}_[generate_sid]"
           sid = super
-puts "_^___[generate_sid] looping during generation of sid"          
-puts "_^___[generate_sid] generated sid is #{sid}."    
-puts "_^___[generate_sid] does session exits? #{@sessions.find(sid: sid).count > 0 ? 'yes' : 'no'}."          
+puts "_^__#{i}_[generate_sid] looping during generation of sid"          
+puts "_^__#{i}_[generate_sid] generated sid is #{sid}."    
+puts "_^__#{i}_[generate_sid] does session exits? #{@sessions.find(sid: sid).count > 0 ? 'yes' : 'no'}."          
           break sid unless (@sessions.find(sid: sid).count > 0)
         end
       end
 
       # ------------------------------------------------------------------------
       def get_session(env, sid)
-        with_lock(env, [nil, {}]) do       
-puts "_^___[get_session] performing find"          
+        with_lock(env, [nil, {}]) do   
+i = Random.rand(100)               
+puts "_^__#{i}_[get_session] performing find"          
           session = @sessions.find(sid: sid)
-puts "_^___[get_session] E find returned #{session.count} results"                    
+puts "_^__#{i}_[get_session] E find returned #{session.count} results"                    
           if session.count > 0
-puts "_^___[get_session] E using existing found session"
-puts "_^___[get_session] E about to unpack the data (#{session['data']})"
-puts "_^___[get_session] E are we unpacking? #{@options[:marshal_data]}"
+puts "_^__#{i}_[get_session] E using existing found session ..."
+puts "_^__#{i}_[get_session] E about to unpack the data (#{session['data']})"
+puts "_^__#{i}_[get_session] E are we unpacking? #{@options[:marshal_data]}"
             session_data = _unpack( session['data'] )
-puts "_^___[get_session] E unpacked data: #{session_data}"
+puts "_^__#{i}_[get_session] E unpacked data: #{session_data}"
             return [sid, session_data]
           else
-puts "_^___[get_session] N no existing session found, generating new one"            
+puts "_^__#{i}_[get_session] N no existing session found, generating new one"            
             sid = generate_sid
-puts "_^___[get_session] N new sid = #{sid}"           
+puts "_^__#{i}_[get_session] N new sid = #{sid}"           
             return [sid, {}]
           end
         end
@@ -97,19 +87,20 @@ puts "_^___[get_session] N new sid = #{sid}"
       # ------------------------------------------------------------------------
       def set_session(env, session_id, new_session, options)
         with_lock(env, false) do
-puts "_^___[set_session] setting data in session"
-puts "_^___[set_session] generating new session id because supplied one is nil" if session_id.nil?
+i = Random.rand(100) 
+puts "_^__#{i}_[set_session] setting data in session"
+puts "_^__#{i}_[set_session] generating new session id because supplied one is nil" if session_id.nil?
           session_id = generate_sid if session_id.nil?
-puts "_^___[set_session] setting session '#{session_id}' data to '#{new_session}'."
+puts "_^__#{i}_[set_session] setting session '#{session_id}' data to '#{new_session}'."
           session = @sessions.find(sid: session_id)
           if session.count > 0
-puts "_^___[set_session] found existing session so updating data"
+puts "_^__#{i}_[set_session] found existing session so updating data"
             session.update('$set' => { data: _pack(new_session), updated_at: Time.now.utc })
           else
-puts "_^___[set_session] creating new session using #{session_id}"            
+puts "_^__#{i}_[set_session] creating new session using #{session_id}"            
             @sessions.insert( sid: session_id, data: _pack(new_session), updated_at: Time.now.utc )
           end
-puts "_^___[set_session] returning session id #{session_id}"          
+puts "_^__#{i}_[set_session] returning session id #{session_id}"          
           return session_id
         end
       end
@@ -117,7 +108,6 @@ puts "_^___[set_session] returning session id #{session_id}"
       # ------------------------------------------------------------------------
       def destroy_session(env, session_id, options)
         with_lock(env) do
-puts "_^___[destroy_session] destroy session  '#{session_id}'."          
           @sessions.remove(sid: sid)
           generate_sid unless options[:drop]
         end
