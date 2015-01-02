@@ -80,7 +80,7 @@ puts "_*___[get_session] performing find"
 puts "_*___[get_session] E find returned #{session.count} results"                    
           if session.count > 0
 puts "_*___[get_session] E using existing found session" 
-            session_data = _unpack( doc['data'] )
+            session_data = _unpack( session['data'] )
 puts "_*___[get_session] E unpacked data: #{session_data}"
             return [sid, session_data]
           else
