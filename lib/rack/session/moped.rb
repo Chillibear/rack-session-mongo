@@ -82,7 +82,6 @@ puts "_^__#{i}_[get_session] N no existing session found, generating new one"
             sid = generate_sid
 puts "_^__#{i}_[get_session] N new sid = #{sid}"                     
           end
-        end
         ensure
           @mutex.unlock if @mutex.locked?
           return [sid, session_data]
