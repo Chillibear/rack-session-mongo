@@ -85,8 +85,8 @@ puts "_^__#{i}_[get_session] N new sid = #{sid}"
         end
         ensure
           @mutex.unlock if @mutex.locked?
-        end
-        return [sid, session_data]
+          return [sid, session_data]
+        end        
       end
 
       # ------------------------------------------------------------------------
@@ -107,11 +107,10 @@ puts "_^__#{i}_[set_session] creating new session using #{session_id}"
             @sessions.insert( sid: session_id, data: _pack(new_session), updated_at: Time.now.utc )
           end
 puts "_^__#{i}_[set_session] returning session id #{session_id}"          
-        end
         ensure
           @mutex.unlock if @mutex.locked?
-        end
-        return session_id
+          return session_id
+        end       
       end
 
       # ------------------------------------------------------------------------
