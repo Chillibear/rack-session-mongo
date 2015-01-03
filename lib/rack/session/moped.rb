@@ -63,6 +63,7 @@ puts "_^__#{i}_[generate_sid] does session exits? #{@sessions.find(sid: sid).cou
 
       # ------------------------------------------------------------------------
       def get_session(env, sid)
+        session_data = {}
         with_lock(env, [nil, {}]) do  
 puts "____#{env['REQUEST_URI']}"           
 i = Random.rand(100)               
@@ -74,15 +75,14 @@ puts "_^__#{i}_[get_session] E using existing found session ..."
 puts "_^__#{i}_[get_session] E about to unpack the data (#{found_sessions.first['data']})"
 puts "_^__#{i}_[get_session] E are we unpacking? #{@options[:marshal_data]}"
             session_data = _unpack( found_sessions.first['data'] )
-puts "_^__#{i}_[get_session] E unpacked data: #{session_data}"
-            return [sid, session_data]
+puts "_^__#{i}_[get_session] E unpacked data: #{session_data}"            
           else
 puts "_^__#{i}_[get_session] N no existing session found, generating new one"            
             sid = generate_sid
-puts "_^__#{i}_[get_session] N new sid = #{sid}"           
-            return [sid, {}]
+puts "_^__#{i}_[get_session] N new sid = #{sid}"                     
           end
         end
+        return [sid, session_data]
       end
 
       # ------------------------------------------------------------------------
@@ -102,8 +102,8 @@ puts "_^__#{i}_[set_session] creating new session using #{session_id}"
             @sessions.insert( sid: session_id, data: _pack(new_session), updated_at: Time.now.utc )
           end
 puts "_^__#{i}_[set_session] returning session id #{session_id}"          
-          return session_id
         end
+        return session_id
       end
 
       # ------------------------------------------------------------------------
