@@ -64,14 +64,15 @@ puts "_^__#{i}_[generate_sid] does session exits? #{@sessions.find(sid: sid).cou
       # ------------------------------------------------------------------------
       def get_session(env, sid)
         session_data = {}
-        with_lock(env, [nil, {}]) do  
+        begin
+          @mutex.lock if env['rack.multithread']  
 puts "____#{env['REQUEST_URI']}"           
 i = Random.rand(100)               
 puts "_^__#{i}_[get_session] performing find on '#{sid}'"          
           found_sessions = @sessions.find(sid: sid)
 puts "_^__#{i}_[get_session] E find returned #{session.count} results"                    
           if found_sessions.count > 0
-puts "_^__#{i}_[get_session] E using existing found session ..."
+puts "_^__#{i}_[get_session] E using existing found session for #{sid}"
 puts "_^__#{i}_[get_session] E about to unpack the data (#{found_sessions.first['data']})"
 puts "_^__#{i}_[get_session] E are we unpacking? #{@options[:marshal_data]}"
             session_data = _unpack( found_sessions.first['data'] )
@@ -82,12 +83,16 @@ puts "_^__#{i}_[get_session] N no existing session found, generating new one"
 puts "_^__#{i}_[get_session] N new sid = #{sid}"                     
           end
         end
+        ensure
+          @mutex.unlock if @mutex.locked?
+        end
         return [sid, session_data]
       end
 
       # ------------------------------------------------------------------------
       def set_session(env, session_id, new_session, options)
-        with_lock(env, false) do
+        begin
+          @mutex.lock if env['rack.multithread']
 i = Random.rand(100) 
 puts "_^__#{i}_[set_session] setting data in session"
 puts "_^__#{i}_[set_session] generating new session id because supplied one is nil" if session_id.nil?
@@ -103,26 +108,23 @@ puts "_^__#{i}_[set_session] creating new session using #{session_id}"
           end
 puts "_^__#{i}_[set_session] returning session id #{session_id}"          
         end
+        ensure
+          @mutex.unlock if @mutex.locked?
+        end
         return session_id
       end
 
       # ------------------------------------------------------------------------
       def destroy_session(env, session_id, options)
-        with_lock(env) do
+        begin
+          @mutex.lock if env['rack.multithread']
           @sessions.remove(sid: sid)
           generate_sid unless options[:drop]
+        ensure
+          @mutex.unlock if @mutex.locked?
         end
       end
 
-      # ------------------------------------------------------------------------
-      def with_lock(env, default=nil)
-        @mutex.lock if env['rack.multithread']
-        yield
-      rescue
-        default
-      ensure
-        @mutex.unlock if @mutex.locked?
-      end
 
     # ==========================================================================
     private
