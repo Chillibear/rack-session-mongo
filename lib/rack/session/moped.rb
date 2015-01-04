@@ -57,19 +57,19 @@ module Rack
       end
 
       # ------------------------------------------------------------------------
-      def get_session(env, session_id)
+      def get_session(env, sid)
         begin
           @mutex.lock if env['rack.multithread']             
 
-          session = _fetch(session_id) if session_id
+          session = _fetch(sid) if sid
           unless sid and session
             session = {}
-            session_id = generate_sid
-            _save(session_id)
+            sid = generate_sid
+            _save(sid)
           end
           session.instance_variable_set('@old', {}.merge(session))
-          session.instance_variable_set('@sid', session_id)
-          return [session_id, session]
+          session.instance_variable_set('@sid', sid)
+          return [sid, session]
 
         ensure
           @mutex.unlock if @mutex.locked?
