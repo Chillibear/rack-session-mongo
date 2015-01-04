@@ -40,8 +40,8 @@ module Rack
         end 
         moped_session.use( @options[:mongo_db_name].to_s ) 
 
-        @sessions = moped_session[ @options[:mongo_collection].to_s ] 
-        @sessions.indexes.create(
+        @pool = moped_session[ @options[:mongo_collection].to_s ] 
+        @pool.indexes.create(
           { sid: 1 },
           { unique: true }
         )       
@@ -51,12 +51,7 @@ module Rack
       # ------------------------------------------------------------------------
       def generate_sid
         loop do
-i = Random.rand(100)          
-puts "_^__#{i}_[generate_sid]"
           sid = super
-puts "_^__#{i}_[generate_sid] looping during generation of sid"          
-puts "_^__#{i}_[generate_sid] generated sid is #{sid}."    
-puts "_^__#{i}_[generate_sid] does session exits? #{@sessions.find(sid: sid).count > 0 ? 'yes' : 'no'}."          
           break sid unless (@sessions.find(sid: sid).count > 0)
         end
       end
@@ -65,26 +60,20 @@ puts "_^__#{i}_[generate_sid] does session exits? #{@sessions.find(sid: sid).cou
       def get_session(env, sid)
         session_data = {}
         begin
-          @mutex.lock if env['rack.multithread']  
-puts "____#{env['REQUEST_URI']}"           
-i = Random.rand(100)               
-puts "_^__#{i}_[get_session] performing find on '#{sid}'"          
-          found_sessions = @sessions.find(sid: sid)
-puts "_^__#{i}_[get_session] E find returned #{session.count} results"                    
-          if found_sessions.count > 0
-puts "_^__#{i}_[get_session] E using existing found session for #{sid}"
-puts "_^__#{i}_[get_session] E about to unpack the data (#{found_sessions.first['data']})"
-puts "_^__#{i}_[get_session] E are we unpacking? #{@options[:marshal_data]}"
-            session_data = _unpack( found_sessions.first['data'] )
-puts "_^__#{i}_[get_session] E unpacked data: #{session_data}"            
-          else
-puts "_^__#{i}_[get_session] N no existing session found, generating new one"            
+          @mutex.lock if env['rack.multithread']             
+
+          session = _find(sid) if sid
+          unless sid and session
+            session = {}
             sid = generate_sid
-puts "_^__#{i}_[get_session] N new sid = #{sid}"                     
+            _save(sid)
           end
+          session.instance_variable_set('@old', {}.merge(session))
+          session.instance_variable_set('@sid', sid)
+          return [sid, session]
+
         ensure
           @mutex.unlock if @mutex.locked?
-          return [sid, session_data]
         end        
       end
 
@@ -92,32 +81,32 @@ puts "_^__#{i}_[get_session] N new sid = #{sid}"
       def set_session(env, session_id, new_session, options)
         begin
           @mutex.lock if env['rack.multithread']
-i = Random.rand(100) 
-puts "_^__#{i}_[set_session] setting data in session"
-puts "_^__#{i}_[set_session] generating new session id because supplied one is nil" if session_id.nil?
-          session_id = generate_sid if session_id.nil?
-puts "_^__#{i}_[set_session] setting session '#{session_id}' data to '#{new_session}'."
-          found_sessions = @sessions.find(sid: session_id)
-          if found_sessions.count > 0
-puts "_^__#{i}_[set_session] found existing session so updating data"
-            found_sessions.first.update('$set' => { data: _pack(new_session), updated_at: Time.now.utc })
-          else
-puts "_^__#{i}_[set_session] creating new session using #{session_id}"            
-            @sessions.insert( sid: session_id, data: _pack(new_session), updated_at: Time.now.utc )
+          session = _find || {}
+          
+          if options[:renew] or options[:drop]
+            @pool.remove(sid: session_id)
+            return false if options[:drop]
+            session_id = generate_sid
+            @pool.insert( sid: session_id, data: _pack({}), updated_at: Time.now.utc )
           end
-puts "_^__#{i}_[set_session] returning session id #{session_id}"          
-        ensure
-          @mutex.unlock if @mutex.locked?
+          
+          old_session = new_session.instance_variable_get('@old') || {}
+          session = merge_sessions( session_id, old_session, new_session, session )
+          
+          @pool.save session_id, session
           return session_id
-        end       
-      end
-
+        ensure
+          @mutex.unlock if env['rack.multithread']
+        end
+      end  
+      
+  
       # ------------------------------------------------------------------------
       def destroy_session(env, session_id, options)
         begin
           @mutex.lock if env['rack.multithread']
           @sessions.remove(sid: sid)
-          generate_sid unless options[:drop]
+          options[:drop] ? nil : generate_sid 
         ensure
           @mutex.unlock if @mutex.locked?
         end
@@ -126,19 +115,45 @@ puts "_^__#{i}_[set_session] returning session id #{session_id}"
 
     # ==========================================================================
     private
+    
+      # ------------------------------------------------------------------------
+      def merge_sessions(sid, old_session, new_session, current_session=nil)
+        current_session ||= {}
+        return current_session unless Hash === old_session and Hash === new_session
+
+        # delete keys that are not in common
+        #delete = current.keys - (new_session.keys & current.keys)
+        delete = old_session.keys - new_session.keys
+        delete.each{|k| current_session.delete k }
+
+        #update = new_session.keys.select{|k| !current.has_key?(k) || new_session[k] != current[k] || new_session[k].kind_of?(Hash) || new_session[k].kind_of?(Array) }    
+        update = new_session.keys.select{|k| new_session[k] != old_session[k] }
+        update.each{|k| current_session[k] = new_session[k] }
+
+        current_session
+      end    
+    
+      # ------------------------------------------------------------------------
+      def _find(sid)
+        session = @pool.find(sid: sid).first # nil if nothing is found
+        session.nil? ? false : _unpack( session['data'] )
+      end    
+    
+      # ------------------------------------------------------------------------
+      def _save(sid, session={})
+        @pool.find(sid: sid).upsert("$set" => { data: _pack(session), updated_at: Time.now.utc })
+      end    
 
       # ------------------------------------------------------------------------
-      def _pack(data)
-puts "_^___[_pack] #{data}"        
+      def _pack(data)      
         return nil unless data        
-        @options[:marshal_data] ? [ Marshal.dump(data) ].pack('m') : data
+        @options[:marshal_data] ? [ Marshal.dump(data) ].pack('m*') : data
       end
 
       # ------------------------------------------------------------------------
-      def _unpack(packed)
-puts "_^___[_unpack] #{packed}"        
+      def _unpack(packed)       
         return nil unless packed
-        @options[:marshal_data] ? Marshal.load( packed.unpack('m').first ) : packed
+        @options[:marshal_data] ? Marshal.load( packed.unpack('m*').first ) : packed
       end
     end
   end
