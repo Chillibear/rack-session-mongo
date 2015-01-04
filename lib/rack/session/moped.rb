@@ -52,7 +52,7 @@ module Rack
       def generate_sid
         loop do
           sid = super
-          break sid unless (@sessions.find(sid: sid).count > 0)
+          break sid unless (@pool.find(sid: sid).count > 0)
         end
       end
 
