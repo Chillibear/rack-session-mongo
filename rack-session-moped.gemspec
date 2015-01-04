@@ -5,9 +5,9 @@ require "rack-session-moped/version"
 Gem::Specification.new do |s|
   s.name        = "rack-session-moped"
   s.version     = Rack::Session::Moped::VERSION
-  s.authors     = ["Eric Freeman", "Masato Igarashi"]
+  s.authors     = ["Eric Freeman", "Kouhei Aoyagi", "Masato Igarashi"]
   s.email       = []
-  s.homepage    = "https://github.com/Chillibear/rack-session-mongo"
+  s.homepage    = "https://github.com/Chillibear/rack-session-moped"
   s.summary     = %q{Rack session store for MongoDB using Moped driver}
   s.description = %q{Rack session store for MongoDB using Moped driver}
 

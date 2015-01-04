@@ -25,8 +25,7 @@ Specify with some config
     use Rack::Session::Moped, {
       :host         => 'myhost:27017',
       :db_name      => 'myapp',
-      :marshal_data => false,
-      :expire_after => 600
+      :marshal_data => false
     }
 
 ## Options
@@ -50,3 +49,5 @@ All other standard Rack [Abstract::ID::DEFAULT_OPTIONS](http://www.rubydoc.info/
 [rack-session-moped](https://github.com/Chillibear/rack-session-moped) distributed under the [MIT license](http://www.opensource.org/licenses/mit-license)
 
 [rack-session-mongo](http://github.com/migrs/rack-session-mongo) on which this is based is Copyright (c) 2012 [Masato Igarashi](http://github.com/migrs)(@[migrs](http://twitter.com/migrs)) and distributed under the [MIT license](http://www.opensource.org/licenses/mit-license).
+
+[rack-session-moped](https://github.com/aoyagikouhei/rack-session-moped) of which this uses code is Copyright (c) 2012 Kouhei [Aoyagi](http://github.com/aoyagikouhei)(@[aoyagikouhei](http://twitter.com/aoyagikouhei)) and distributed under the [MIT license](http://www.opensource.org/licenses/mit-license).
