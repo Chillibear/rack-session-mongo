@@ -57,20 +57,19 @@ module Rack
       end
 
       # ------------------------------------------------------------------------
-      def get_session(env, sid)
-        session_data = {}
+      def get_session(env, session_id)
         begin
           @mutex.lock if env['rack.multithread']             
 
-          session = _find(sid) if sid
+          session = _fetch(session_id) if session_id
           unless sid and session
             session = {}
-            sid = generate_sid
-            _save(sid)
+            session_id = generate_sid
+            _save(session_id)
           end
           session.instance_variable_set('@old', {}.merge(session))
-          session.instance_variable_set('@sid', sid)
-          return [sid, session]
+          session.instance_variable_set('@sid', session_id)
+          return [session_id, session]
 
         ensure
           @mutex.unlock if @mutex.locked?
@@ -81,7 +80,7 @@ module Rack
       def set_session(env, session_id, new_session, options)
         begin
           @mutex.lock if env['rack.multithread']
-          session = _find || {}
+          session = _fetch(session_id) || {}
           
           if options[:renew] or options[:drop]
             @pool.remove(sid: session_id)
@@ -134,7 +133,7 @@ module Rack
       end    
     
       # ------------------------------------------------------------------------
-      def _find(sid)
+      def _fetch(sid)
         session = @pool.find(sid: sid).first # nil if nothing is found
         session.nil? ? false : _unpack( session['data'] )
       end    
