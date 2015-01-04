@@ -92,7 +92,7 @@ module Rack
           old_session = new_session.instance_variable_get('@old') || {}
           session = merge_sessions( session_id, old_session, new_session, session )
           
-          @pool.save session_id, session
+          @pool._save session_id, session
           return session_id
         ensure
           @mutex.unlock if env['rack.multithread']
